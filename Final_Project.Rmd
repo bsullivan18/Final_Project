@@ -1,6 +1,6 @@
 ---
 title: "Final Project"
-author: "WRITE GROUP MEMBERS NAMES HERE!"
+author: "Sara Culhane and Brenna Sullivan"
 date: "December 22, 2017"
 output:
   html_document:
@@ -18,7 +18,14 @@ output:
 ## Load all packages
 
 ```{r, message=FALSE, warning=FALSE, fig.width=8, fig.height=4.5, echo=FALSE}
+require(mosaic)   # Load additional packages here 
+library(ggplot2)
 
+# Some customization.  You can alter or delete as desired (if you know what you are doing).
+trellis.par.set(theme=theme.mosaic()) # change default color scheme for lattice
+knitr::opts_chunk$set(
+  tidy=FALSE,     # display code as typed
+  size="small")   # slightly smaller font for code
 ```
 
 
@@ -31,8 +38,18 @@ Note: CSV/data files should be read assuming they are in the `data` folder. In
 other words, load data via `read_csv("data/CSV_NAME.csv")` and not via
 `read_csv("/Users/aykim/Documents/MATH495/Final_Project/data/CSV_NAME.csv")`
 
-```{r, message=FALSE, warning=FALSE, fig.width=8, fig.height=4.5, echo=FALSE}
+Kaggle Competition: House Prices: Advanced Regression Techniques (Scoring Mechinism: RMSE)
+https://www.kaggle.com/c/house-prices-advanced-regression-techniques
 
+```{r, message=FALSE, warning=FALSE, fig.width=8, fig.height=4.5, echo=FALSE}
+train1 <- read.csv("data/FinalProjectTrain.csv")
+train_id <- sample(1:dim(train1)[1], dim(train1)[1]/2, replace = FALSE)
+train <- train1[train_id, ] #data to fit the model to
+test <- train1[-train_id, ] #data to CV on
+
+kaggle_test <- read.csv("data/FinalProjectTest.csv") #predict SalePrice for kaggle submission
+
+train$logSalePrice <- log(train$SalePrice)
 ```
 
 
@@ -47,6 +64,33 @@ submission.
 * The "score" in question should be the same as used to compute the Kaggle
 leaderboard. In other words, your estimated score should be roughly equal to the
 score returned by Kaggle after your submission.
+
+Predicting Sale Price (in USD) of houses with no modeling:
+
+```{r}
+histogram(train$SalePrice, type = "percent", xlab= "Sale Price (USD)", ylab= "Percent of Homes") #skewed right, not normal
+bwplot(train$SalePrice, xlab= "Sale Price (USD)")
+histogram(train$logSalePrice, type = "percent", xlab = "Log of Sale Price (USD)", ylab = "Percent of Homes") #much more normal when logSalePrice is used
+bwplot(train$logSalePrice, xlab = "Log of Sale Price (USD)")
+mean(train$SalePrice)
+mean(train$logSalePrice)
+```
+
+Predicting Sale Price (in USD) of houses with modeling:
+
+```{r}
+#Model Formula with all 79 predictor variables
+model_formula <- as.formula("SalePrice ~ MSSubClass + MSZoning + LotFrontage + LotArea + Street + Alley + LotShape + LandContour + Utilities + LotConfig + LandSlope + Neighborhood + Condition1 + Condition2 + BldgType + HouseStyle + OverallQual + OverallCond + YearBuilt + YearRemodAdd + RoofStyle + RoofStyle + RoofMatl + Exterior1st + Exterior2nd + MasVnrType + MasVnrArea + ExterQual + ExterCond + Foundation + BsmtQual + BsmtCond + BsmtExposure + BsmtFinType1 + BsmtFinSF1 + BsmtFinType2 + BsmtFinSF2 + BsmtUnfSF + TotalBsmtSF + Heating + HeatingQC + CentralAir + Electrical + X1stFlrSF + X2ndFlrSF + LowQualFinSF + GrLivArea + BsmtFullBath + BsmtHalfBath + FullBath + HalfBath  + KitchenQual + TotRmsAbvGrd + Functional + Fireplaces + FireplaceQu + GarageType + GarageYrBlt + GarageFinish + GarageCars + GarageArea + GarageQual + GarageCond + PavedDrive + WoodDeckSF + OpenPorchSF + EnclosedPorch + X3SsnPorch + ScreenPorch + PoolArea + PoolQC + Fence + MiscFeature + MiscVal + MoSold + YrSold + SaleType + SaleCondition")
+```
+
+
+###1. Subset Selection (Forward/Backwards selection of predictors (Stat230))
+
+
+###2. Dimension Reduction (PCA)
+
+
+###3. Shrinkage/ Regularization (LASSO)
 
 
 
