@@ -54,7 +54,7 @@ train$logSalePrice <- log(train$SalePrice)
 
 
 ```{r}
-#Drop factor variables with less than 2 levels & keep non-factor vars
+#Drop factor variables with less than 2 levels & keep non-factor vars from Kaggle Competition discusstion(https://www.kaggle.com/c/house-prices-advanced-regression-techniques/discussion/24399)
 names(train) <- make.names(names(train))
 
 features <- setdiff(colnames(train), c("Id", "SalePrice"))
@@ -76,7 +76,7 @@ train <- train[,names(train) %in% c(names(factor_levels), names(column_class))]
 train <- as.data.frame(unclass(train))
 
 #Train model
-lmfull <- lm(SalePrice ~ . , data=train)
+lmfull <- lm(logSalePrice ~ . , data=train)
 summary(lmfull)
 ```
 
@@ -104,13 +104,10 @@ mean(train$logSalePrice)
 
 Predicting Sale Price (in USD) of houses with modeling:
 
-```{r}
-#Model Formula with all 79 predictor variables
-model_formula <- as.formula("logSalePrice ~ MSSubClass + MSZoning + LotFrontage + LotArea + Street + Alley + LotShape + LandContour + Utilities + LotConfig + LandSlope + Neighborhood + Condition1 + Condition2 + BldgType + HouseStyle + OverallQual + OverallCond + YearBuilt + YearRemodAdd + RoofStyle + RoofStyle + RoofMatl + Exterior1st + Exterior2nd + MasVnrType + MasVnrArea + ExterQual + ExterCond + Foundation + BsmtQual + BsmtCond + BsmtExposure + BsmtFinType1 + BsmtFinSF1 + BsmtFinType2 + BsmtFinSF2 + BsmtUnfSF + TotalBsmtSF + Heating + HeatingQC + CentralAir + Electrical + X1stFlrSF + X2ndFlrSF + LowQualFinSF + GrLivArea + BsmtFullBath + BsmtHalfBath + FullBath + HalfBath  + KitchenQual + TotRmsAbvGrd + Functional + Fireplaces + FireplaceQu + GarageType + GarageYrBlt + GarageFinish + GarageCars + GarageArea + GarageQual + GarageCond + PavedDrive + WoodDeckSF + OpenPorchSF + EnclosedPorch + X3SsnPorch + ScreenPorch + PoolArea + PoolQC + Fence + MiscFeature + MiscVal + MoSold + YrSold + SaleType + SaleCondition")
-```
-
 ###1. Subset Selection (Forward or Backwards selection of predictors (Stat230))
 ```{r}
+lmfull <- lm(logSalePrice ~ . , data=train)
+
 lmempty <- lm(logSalePrice ~ 1, data=train) # model with only intercept
 
 step(lmempty, scope=list(lower=lmempty, upper=lmfull), direction="forward")
