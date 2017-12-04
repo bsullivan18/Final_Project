@@ -48,13 +48,12 @@ train <- train1[train_id, ] #data to fit the model to
 test <- train1[-train_id, ] #data to CV on
 
 kaggle_test <- read.csv("data/FinalProjectTest.csv") #predict SalePrice for kaggle submission
-
-train$logSalePrice <- log(train$SalePrice)
 ```
 
 
 ```{r}
 #Drop factor variables with less than 2 levels & keep non-factor vars from Kaggle Competition discusstion(https://www.kaggle.com/c/house-prices-advanced-regression-techniques/discussion/24399)
+
 names(train) <- make.names(names(train))
 
 features <- setdiff(colnames(train), c("Id", "SalePrice"))
@@ -76,8 +75,7 @@ train <- train[,names(train) %in% c(names(factor_levels), names(column_class))]
 train <- as.data.frame(unclass(train))
 
 #Train model
-lmfull <- lm(logSalePrice ~ . , data=train)
-summary(lmfull)
+lmfull <- lm(log(SalePrice) ~ . , data=train)
 ```
 
 ## EDA visualizations and tables
@@ -96,21 +94,24 @@ Predicting Sale Price (in USD) of houses with no modeling:
 ```{r}
 histogram(train$SalePrice, type = "percent", xlab= "Sale Price (USD)", ylab= "Percent of Homes") #skewed right, not normal
 bwplot(train$SalePrice, xlab= "Sale Price (USD)")
-histogram(train$logSalePrice, type = "percent", xlab = "Log of Sale Price (USD)", ylab = "Percent of Homes") #much more normal when logSalePrice is used
-bwplot(train$logSalePrice, xlab = "Log of Sale Price (USD)")
+histogram(log(train$SalePrice), type = "percent", xlab = "Log of Sale Price (USD)", ylab = "Percent of Homes") #much more normal when logSalePrice is used
+bwplot(log(train$SalePrice), xlab = "Log of Sale Price (USD)")
 mean(train$SalePrice)
-mean(train$logSalePrice)
+mean(log(train$SalePrice))
 ```
 
 Predicting Sale Price (in USD) of houses with modeling:
 
 ###1. Subset Selection (Forward or Backwards selection of predictors (Stat230))
 ```{r}
-lmfull <- lm(logSalePrice ~ . , data=train)
+lmfull <- lm(log(SalePrice) ~ . , data=train)
 
-lmempty <- lm(logSalePrice ~ 1, data=train) # model with only intercept
+lmempty <- lm(log(SalePrice) ~ 1, data=train) # model with only intercept
+```
 
-step(lmempty, scope=list(lower=lmempty, upper=lmfull), direction="forward")
+```{r}
+model1 <- step(lmempty, scope=list(lower=lmempty, upper=lmfull), direction="forward")
+summary(model1)
 ```
 
 
