@@ -42,7 +42,7 @@ Kaggle Competition: House Prices: Advanced Regression Techniques (Scoring Mechin
 https://www.kaggle.com/c/house-prices-advanced-regression-techniques
 
 ```{r, message=FALSE, warning=FALSE, fig.width=8, fig.height=4.5, echo=FALSE}
-train1 <- read.csv("data/FinalProjectTrain.csv")
+train1 <- read.csv("data/FinalProjectTrain.csv", sep=",", stringsAsFactors = F)
 train_id <- sample(1:dim(train1)[1], dim(train1)[1]/2, replace = FALSE)
 train <- train1[train_id, ] #data to fit the model to
 test <- train1[-train_id, ] #data to CV on
@@ -53,6 +53,29 @@ train$logSalePrice <- log(train$SalePrice)
 ```
 
 
+```{r}
+#Drop factor variables with less than 2 levels & keep non-factor vars
+#Taken from Kaggle Competition Discussion (https://www.kaggle.com/c/house-prices-advanced-regression-techniques/discussion/24399)
+names(train) <- make.names(names(train))
+
+features <- setdiff(colnames(train), c("Id", "SalePrice"))
+for (f in features) {
+  if (any(is.na(train[[f]]))) 
+    if (is.character(train[[f]])){ 
+      train[[f]][is.na(train[[f]])] <- "Others"
+    }else{
+      train[[f]][is.na(train[[f]])] <- -999  
+    }
+}
+
+column_class <- lapply(train,class)
+column_class <- column_class[column_class != "factor"]
+factor_levels <- lapply(train, nlevels)
+factor_levels <- factor_levels[factor_levels > 1]
+train <- train[,names(train) %in% c(names(factor_levels), names(column_class))]
+
+train <- as.data.frame(unclass(train))
+```
 
 ## EDA visualizations and tables
 
@@ -80,11 +103,18 @@ Predicting Sale Price (in USD) of houses with modeling:
 
 ```{r}
 #Model Formula with all 79 predictor variables
-model_formula <- as.formula("SalePrice ~ MSSubClass + MSZoning + LotFrontage + LotArea + Street + Alley + LotShape + LandContour + Utilities + LotConfig + LandSlope + Neighborhood + Condition1 + Condition2 + BldgType + HouseStyle + OverallQual + OverallCond + YearBuilt + YearRemodAdd + RoofStyle + RoofStyle + RoofMatl + Exterior1st + Exterior2nd + MasVnrType + MasVnrArea + ExterQual + ExterCond + Foundation + BsmtQual + BsmtCond + BsmtExposure + BsmtFinType1 + BsmtFinSF1 + BsmtFinType2 + BsmtFinSF2 + BsmtUnfSF + TotalBsmtSF + Heating + HeatingQC + CentralAir + Electrical + X1stFlrSF + X2ndFlrSF + LowQualFinSF + GrLivArea + BsmtFullBath + BsmtHalfBath + FullBath + HalfBath  + KitchenQual + TotRmsAbvGrd + Functional + Fireplaces + FireplaceQu + GarageType + GarageYrBlt + GarageFinish + GarageCars + GarageArea + GarageQual + GarageCond + PavedDrive + WoodDeckSF + OpenPorchSF + EnclosedPorch + X3SsnPorch + ScreenPorch + PoolArea + PoolQC + Fence + MiscFeature + MiscVal + MoSold + YrSold + SaleType + SaleCondition")
+model_formula <- as.formula("logSalePrice ~ MSSubClass + MSZoning + LotFrontage + LotArea + Street + Alley + LotShape + LandContour + Utilities + LotConfig + LandSlope + Neighborhood + Condition1 + Condition2 + BldgType + HouseStyle + OverallQual + OverallCond + YearBuilt + YearRemodAdd + RoofStyle + RoofStyle + RoofMatl + Exterior1st + Exterior2nd + MasVnrType + MasVnrArea + ExterQual + ExterCond + Foundation + BsmtQual + BsmtCond + BsmtExposure + BsmtFinType1 + BsmtFinSF1 + BsmtFinType2 + BsmtFinSF2 + BsmtUnfSF + TotalBsmtSF + Heating + HeatingQC + CentralAir + Electrical + X1stFlrSF + X2ndFlrSF + LowQualFinSF + GrLivArea + BsmtFullBath + BsmtHalfBath + FullBath + HalfBath  + KitchenQual + TotRmsAbvGrd + Functional + Fireplaces + FireplaceQu + GarageType + GarageYrBlt + GarageFinish + GarageCars + GarageArea + GarageQual + GarageCond + PavedDrive + WoodDeckSF + OpenPorchSF + EnclosedPorch + X3SsnPorch + ScreenPorch + PoolArea + PoolQC + Fence + MiscFeature + MiscVal + MoSold + YrSold + SaleType + SaleCondition")
 ```
 
+###1. Subset Selection (Forward or Backwards selection of predictors (Stat230))
+```{r}
+lmfull <- lm(model_formula, data=train) #linear model with all variables
 
-###1. Subset Selection (Forward/Backwards selection of predictors (Stat230))
+
+lmempty <- lm(logSalePrice ~ 1, data=train) # model with only intercept
+
+step(lmempty, scope=list(lower=lmempty, upper=lmfull), direction="forward")
+```
 
 
 ###2. Dimension Reduction (PCA)
