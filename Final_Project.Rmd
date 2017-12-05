@@ -104,9 +104,10 @@ Predicting Sale Price (in USD) of houses with modeling:
 
 ###1. Subset Selection (Forward or Backwards selection of predictors (Stat230))
 ```{r}
-lmfull <- lm(log(SalePrice) ~ . , data=train)
+train$log_saleprice <- log(train$SalePrice)
+lmfull <- lm(log_saleprice ~ . , data=train)
 
-lmempty <- lm(log(SalePrice) ~ 1, data=train) # model with only intercept
+lmempty <- lm(log_saleprice ~ 1, data=train) # model with only intercept
 ```
 
 ```{r}
@@ -119,6 +120,45 @@ summary(model1)
 
 
 ###3. Shrinkage/ Regularization (LASSO)
+```{r}
+library(glmnet)
+library(tidyr)
+get_LASSO_coefficients <- function(LASSO_fit){
+  coeff_values <- LASSO_fit %>% 
+    broom::tidy() %>% 
+    as_tibble() %>% 
+    select(-c(step, dev.ratio)) %>% 
+    tidyr::complete(lambda, nesting(term), fill = list(estimate = 0)) %>% 
+    arrange(desc(lambda)) %>% 
+    select(term, estimate, lambda)
+  return(coeff_values)
+}
+
+mod <- summary(model1)[1]$call
+model_formula <- as.formula("mod")
+predictor_matrix <- model.matrix(model_formula, data=train)[, -1]
+lambda_inputs <- 10^seq(-2, 10, length = 100)
+
+LASSO_fit <- glmnet(x=predictor_matrix, y=train$log_saleprice, alpha = 1, lambda = lambda_inputs)
+
+# 5. Get beta-hat coefficients for ALL values of knob/tuning parameter lambda
+LASSO_coefficients <- get_LASSO_coefficients(LASSO_fit)
+
+ggplot(LASSO_coefficients, aes(x=lambda, y=estimate, col=term)) +
+  geom_line() +
+  labs(x="lambda", y="beta-hat coefficient estimate")
+```
+
+```{r}
+plot_LASSO_coefficients <- LASSO_coefficients %>% 
+  filter(term != "(Intercept)") %>% 
+  ggplot(aes(x=lambda, y=estimate, col=term)) +
+  geom_line() +
+  scale_x_log10() +
+  labs(x="lambda (log10-scale)", y="beta-hat coefficient estimate",
+       title="LASSO regularized coefficient for each lambda value")
+plot_LASSO_coefficients
+```
 
 
 
