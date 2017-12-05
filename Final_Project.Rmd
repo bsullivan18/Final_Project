@@ -118,6 +118,28 @@ summary(model1)
 
 ###2. Dimension Reduction (PCA)
 
+### PCA using top quantative 
+
+```{r}
+library(factoextra)
+pca <- train %>% 
+  select(LotArea,log_saleprice, OverallQual,OverallCond,BsmtFinSF1,BsmtFinSF2,YearBuilt,GarageArea,TotalBsmtSF,TotRmsAbvGrd,PoolArea,YearBuilt)
+pca_comp <- prcomp(pca,scale=FALSE)
+fviz_eig(pca_comp)
+
+fviz_pca_ind(pca_comp,
+             col.ind = "cos2", # Color by the quality of representation
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+             repel = TRUE     # Avoid text overlapping
+             )
+
+fviz_pca_var(pca_comp,
+             col.var = "contrib", # Color by contributions to the PC
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+             repel = TRUE     # Avoid text overlapping
+             )
+```
+
 
 ###3. Shrinkage/ Regularization (LASSO)
 ```{r}
@@ -167,9 +189,72 @@ plot_LASSO_coefficients
 Note: Hardcode your crossvalidation here i.e. do not use built-in crossvalidation
 options.
 
-```{r, message=FALSE, warning=FALSE, fig.width=8, fig.height=4.5, echo=FALSE}
+```{r}
+LASSO_CV <- cv.glmnet(x=predictor_matrix, y=train$log_saleprice, alpha=1, lambda=lambda_inputs)
+
+# Optimal lambdas
+lambda_star <- LASSO_CV$lambda.min
+lambda_star_1SE <- LASSO_CV$lambda.1se
 
 ```
+
+```{r}
+plot(LASSO_CV)
+abline(v=log(lambda_star), col="red")
+abline(v=log(lambda_star_1SE), col="blue")
+
+plot_LASSO_coefficients <- plot_LASSO_coefficients +
+  geom_vline(xintercept = lambda_star, col="red", alpha=0.4, linetype="dashed") +
+  geom_vline(xintercept = lambda_star_1SE, col="blue", alpha=0.4, linetype="dashed")
+plot_LASSO_coefficients
+plot_LASSO_coefficients +
+  coord_cartesian(xlim=c(1, 1000), ylim=c(-1, 1))
+y_hat <- predict(LASSO_fit, newx=predictor_matrix, s=lambda_star_1SE) %>% 
+  as.vector()
+hist(y_hat)
+```
+
+```{r, message=FALSE, warning=FALSE, fig.width=8, fig.height=4.5, echo=FALSE}
+train <- train %>% 
+  sample_frac(1) %>% 
+  mutate(fold = rep(1:10, length=n()))
+train %>% 
+  count(fold)
+predictor_matrix <- model.matrix(model_formula, data=train)[, -1] 
+predictor_matrix <- as.data.frame(predictor_matrix) %>% 
+  sample_frac(1) %>% 
+  mutate(fold = rep(1:10, length=n()))
+predictor_matrix %>% 
+  count(fold)
+
+# Consider a range of degrees of freedom. this was chosen by trial and error
+vector <- lambda_inputs
+
+# Save results here
+results <- data_frame(
+  lambda = vector,
+  RMSE = 0
+)
+
+for(i in 1:length(vector)){
+  for(j in 1:10){
+    # Set up training & validation (AKA "pretend" test) set based on folds
+    train_set <- train %>% 
+      filter(fold == j)
+    validation_set <- train %>% 
+      filter(fold !=j)
+    pred <- as.data.frame(predictor_matrix) %>% 
+      filter(fold == j)
+
+    mod <-  get_LASSO_coefficients(glmnet(x=pred, y=train_set$log_saleprice, alpha=1, lambda=vector))
+    # Get predictions
+   
+    
+  }   
+}
+ predictions <- predict(mod, newx=predictor_matrix, s=vector[i])
+```
+ 
 
 
 
