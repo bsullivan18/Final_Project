@@ -71,9 +71,9 @@ column_class <- column_class[column_class != "factor"]
 factor_levels <- lapply(train, nlevels)
 factor_levels <- factor_levels[factor_levels > 1]
 train <- train[,names(train) %in% c(names(factor_levels), names(column_class))]
-
+test <- train[,names(train) %in% c(names(factor_levels), names(column_class))]
 train <- as.data.frame(unclass(train))
-
+train <- as.data.frame(unclass(test))
 #Train model
 lmfull <- lm(log(SalePrice) ~ . , data=train)
 ```
@@ -103,6 +103,7 @@ mean(log(train$SalePrice))
 Predicting Sale Price (in USD) of houses with modeling:
 
 ###1. Subset Selection (Forward or Backwards selection of predictors (Stat230))
+
 ```{r}
 train$log_saleprice <- log(train$SalePrice)
 lmfull <- lm(log_saleprice ~ . , data=train)
@@ -113,6 +114,17 @@ lmempty <- lm(log_saleprice ~ 1, data=train) # model with only intercept
 ```{r}
 model1 <- step(lmempty, scope=list(lower=lmempty, upper=lmfull), direction="forward")
 summary(model1)
+test$log_saleprice <- log(test$SalePrice)
+preds <- predict(model1,test)
+test$y <-preds
+diff <- test$y - test$log_saleprice
+RMSE <- function(diff) {
+  RMSE <- sqrt(mean(diff^2))
+  return(RMSE)
+}
+RMSE(diff)
+
+
 ```
 
 
