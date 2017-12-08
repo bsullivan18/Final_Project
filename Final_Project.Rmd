@@ -135,7 +135,7 @@ RMSE(diff)
 ```{r}
 library(factoextra)
 pca <- train %>% 
-  select(LotArea,log_saleprice, OverallQual,OverallCond,BsmtFinSF1,BsmtFinSF2,YearBuilt,GarageArea,TotalBsmtSF,TotRmsAbvGrd,PoolArea,YearBuilt)
+  select(log_saleprice,GrLivArea,GarageArea,LotFrontage, OverallQual,OverallCond,BsmtFinSF1,BsmtFinSF2,TotalBsmtSF,TotRmsAbvGrd,PoolArea,YearBuilt, LotArea)
 pca_comp <- prcomp(pca,scale=FALSE)
 fviz_eig(pca_comp)
 
@@ -193,6 +193,7 @@ plot_LASSO_coefficients <- LASSO_coefficients %>%
        title="LASSO regularized coefficient for each lambda value")
 plot_LASSO_coefficients
 ```
+
 
 
 
