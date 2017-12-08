@@ -135,7 +135,7 @@ RMSE(diff)
 ```{r}
 library(factoextra)
 pca <- train %>% 
-  select(log_saleprice,GrLivArea,GarageArea,LotFrontage, OverallQual,OverallCond,BsmtFinSF1,BsmtFinSF2,TotalBsmtSF,TotRmsAbvGrd,PoolArea,YearBuilt, LotArea)
+  select(log_saleprice,GrLivArea,GarageArea,LotFrontage, OverallQual,OverallCond,BsmtFinSF1,BsmtFinSF2,TotalBsmtSF,TotRmsAbvGrd,PoolArea,YearBuilt,YearRemodAdd)
 pca_comp <- prcomp(pca,scale=FALSE)
 fviz_eig(pca_comp)
 
@@ -152,6 +152,14 @@ fviz_pca_var(pca_comp,
              )
 ```
 
+```{r}
+X <- train %>% 
+  select(TotalBsmtSF,LotFrontage,YearBuilt)
+ggplot(data=X, aes(x=TotalBsmtSF, y=LotFrontage)) +
+  geom_text(label=X$YearBuilt) +
+  geom_smooth(method="lm", se=FALSE, linetype="dashed", size=0.5, col="black") +
+  labs(x="X1: TotalBsmtSF", y="X2: LotFrontage")
+```
 
 ###3. Shrinkage/ Regularization (LASSO)
 ```{r}
@@ -227,47 +235,7 @@ y_hat <- predict(LASSO_fit, newx=predictor_matrix, s=lambda_star_1SE) %>%
 hist(y_hat)
 ```
 
-```{r, message=FALSE, warning=FALSE, fig.width=8, fig.height=4.5, echo=FALSE}
-train <- train %>% 
-  sample_frac(1) %>% 
-  mutate(fold = rep(1:10, length=n()))
-train %>% 
-  count(fold)
-predictor_matrix <- model.matrix(model_formula, data=train)[, -1] 
-predictor_matrix <- as.data.frame(predictor_matrix) %>% 
-  sample_frac(1) %>% 
-  mutate(fold = rep(1:10, length=n()))
-predictor_matrix %>% 
-  count(fold)
 
-# Consider a range of degrees of freedom. this was chosen by trial and error
-vector <- lambda_inputs
-
-# Save results here
-results <- data_frame(
-  lambda = vector,
-  RMSE = 0
-)
-
-for(i in 1:length(vector)){
-  for(j in 1:10){
-    # Set up training & validation (AKA "pretend" test) set based on folds
-    train_set <- train %>% 
-      filter(fold == j)
-    validation_set <- train %>% 
-      filter(fold !=j)
-    pred <- as.data.frame(predictor_matrix) %>% 
-      filter(fold == j)
-
-    mod <-  get_LASSO_coefficients(glmnet(x=pred, y=train_set$log_saleprice, alpha=1, lambda=vector))
-    # Get predictions
-   
-    
-  }   
-}
- predictions <- predict(mod, newx=predictor_matrix, s=vector[i])
-```
- 
 
 
 
