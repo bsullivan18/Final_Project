@@ -42,8 +42,9 @@ Kaggle Competition: House Prices: Advanced Regression Techniques (Scoring Mechin
 https://www.kaggle.com/c/house-prices-advanced-regression-techniques
 
 ```{r, message=FALSE, warning=FALSE, fig.width=8, fig.height=4.5, echo=FALSE}
+set.seed(1)
 train1 <- read.csv("data/FinalProjectTrain.csv", sep=",", stringsAsFactors = F)
-train_id <- sample(1:dim(train1)[1], dim(train1)[1]/2, replace = FALSE)
+train_id <- sample(1:dim(train1)[1], 3*dim(train1)[1]/4, replace = FALSE)
 train <- train1[train_id, ] #data to fit the model to
 test <- train1[-train_id, ] #data to CV on
 
@@ -71,11 +72,9 @@ column_class <- column_class[column_class != "factor"]
 factor_levels <- lapply(train, nlevels)
 factor_levels <- factor_levels[factor_levels > 1]
 train <- train[,names(train) %in% c(names(factor_levels), names(column_class))]
-
+test <- train[,names(train) %in% c(names(factor_levels), names(column_class))]
 train <- as.data.frame(unclass(train))
-
-#Train model
-lmfull <- lm(log(SalePrice) ~ . , data=train)
+train <- as.data.frame(unclass(test))
 ```
 
 ## EDA visualizations and tables
@@ -103,9 +102,16 @@ mean(log(train$SalePrice))
 Predicting Sale Price (in USD) of houses with modeling:
 
 ###1. Subset Selection (Forward or Backwards selection of predictors (Stat230))
+
 ```{r}
 train$log_saleprice <- log(train$SalePrice)
-lmfull <- lm(log_saleprice ~ . , data=train)
+
+model_formula <- as.formula("log_saleprice ~ Id + MSSubClass + MSZoning + LotFrontage + LotArea + Street + Alley + LotShape + LandContour + LotConfig + LandSlope + Neighborhood + Condition1 + Condition2+ BldgType + HouseStyle + OverallQual + OverallCond + YearBuilt +YearRemodAdd + RoofStyle + RoofMatl + Exterior1st + Exterior2nd + MasVnrType + MasVnrArea + ExterQual + ExterCond + Foundation + BsmtCond + BsmtExposure + BsmtFinType1 + BsmtFinSF1 + BsmtFinType2 + BsmtFinSF2 + BsmtUnfSF + TotalBsmtSF + Heating + HeatingQC + CentralAir + Electrical + X1stFlrSF + X2ndFlrSF + LowQualFinSF + GrLivArea + BsmtFullBath +BsmtHalfBath + FullBath + HalfBath + BedroomAbvGr + KitchenAbvGr + KitchenQual + TotRmsAbvGrd + Functional + Fireplaces + FireplaceQu + GarageType + GarageYrBlt + GarageFinish + GarageCars + GarageArea + GarageQual + PavedDrive + WoodDeckSF + OpenPorchSF + EnclosedPorch + X3SsnPorch + ScreenPorch + PoolArea + PoolQC + Fence + MiscFeature + MiscVal + MoSold + YrSold + SaleType + SaleCondition")
+```
+
+
+```{r}
+lmfull <- lm(model_formula, data=train)
 
 lmempty <- lm(log_saleprice ~ 1, data=train) # model with only intercept
 ```
@@ -113,6 +119,15 @@ lmempty <- lm(log_saleprice ~ 1, data=train) # model with only intercept
 ```{r}
 model1 <- step(lmempty, scope=list(lower=lmempty, upper=lmfull), direction="forward")
 summary(model1)
+test$log_saleprice <- log(test$SalePrice)
+preds <- predict(model1,test)
+diffs <- preds - test$log_saleprice
+RMSE <- function(diffs) {
+  RMSE <- sqrt(mean((diffs)^2))
+  return(RMSE)
+}
+RMSE(diffs)
+
 ```
 
 
@@ -123,7 +138,7 @@ summary(model1)
 ```{r}
 library(factoextra)
 pca <- train %>% 
-  select(LotArea,log_saleprice, OverallQual,OverallCond,BsmtFinSF1,BsmtFinSF2,YearBuilt,GarageArea,TotalBsmtSF,TotRmsAbvGrd,PoolArea,YearBuilt)
+  select(log_saleprice,GrLivArea,GarageArea,LotFrontage, OverallQual,OverallCond,BsmtFinSF1,BsmtFinSF2,TotalBsmtSF,TotRmsAbvGrd,PoolArea,YearBuilt,YearRemodAdd)
 pca_comp <- prcomp(pca,scale=FALSE)
 fviz_eig(pca_comp)
 
@@ -140,6 +155,14 @@ fviz_pca_var(pca_comp,
              )
 ```
 
+```{r}
+X <- train %>% 
+  select(TotalBsmtSF,LotFrontage,YearBuilt)
+ggplot(data=X, aes(x=TotalBsmtSF, y=LotFrontage)) +
+  geom_text(label=X$YearBuilt) +
+  geom_smooth(method="lm", se=FALSE, linetype="dashed", size=0.5, col="black") +
+  labs(x="X1: TotalBsmtSF", y="X2: LotFrontage")
+```
 
 ###3. Shrinkage/ Regularization (LASSO)
 ```{r}
@@ -156,8 +179,6 @@ get_LASSO_coefficients <- function(LASSO_fit){
   return(coeff_values)
 }
 
-mod <- summary(model1)[1]$call
-model_formula <- as.formula("mod")
 predictor_matrix <- model.matrix(model_formula, data=train)[, -1]
 lambda_inputs <- 10^seq(-2, 10, length = 100)
 
@@ -182,6 +203,22 @@ plot_LASSO_coefficients <- LASSO_coefficients %>%
 plot_LASSO_coefficients
 ```
 
+```{r}
+plot_LASSO_coefficients +
+  coord_cartesian(xlim= c(.01, .6), ylim=c(-.0001, .0001))
+```
+
+```{r}
+LASSO_CV <- cv.glmnet(x=predictor_matrix, y=log(train$SalePrice), alpha=1, lambda=lambda_inputs)
+lambda_star <- LASSO_CV$lambda.min
+lambda_star_1SE <- LASSO_CV$lambda.1se
+
+#code for finding the variables that should be used when lambda=1SE (from stack exchange)
+c <- coef(LASSO_CV, s= lambda_star_1SE, exact=TRUE)
+inds <- which(c!=0)
+variables <- row.names(c)[inds]
+variables
+```
 
 
 ## Crossvalidation of ultimate model
@@ -214,47 +251,7 @@ y_hat <- predict(LASSO_fit, newx=predictor_matrix, s=lambda_star_1SE) %>%
 hist(y_hat)
 ```
 
-```{r, message=FALSE, warning=FALSE, fig.width=8, fig.height=4.5, echo=FALSE}
-train <- train %>% 
-  sample_frac(1) %>% 
-  mutate(fold = rep(1:10, length=n()))
-train %>% 
-  count(fold)
-predictor_matrix <- model.matrix(model_formula, data=train)[, -1] 
-predictor_matrix <- as.data.frame(predictor_matrix) %>% 
-  sample_frac(1) %>% 
-  mutate(fold = rep(1:10, length=n()))
-predictor_matrix %>% 
-  count(fold)
 
-# Consider a range of degrees of freedom. this was chosen by trial and error
-vector <- lambda_inputs
-
-# Save results here
-results <- data_frame(
-  lambda = vector,
-  RMSE = 0
-)
-
-for(i in 1:length(vector)){
-  for(j in 1:10){
-    # Set up training & validation (AKA "pretend" test) set based on folds
-    train_set <- train %>% 
-      filter(fold == j)
-    validation_set <- train %>% 
-      filter(fold !=j)
-    pred <- as.data.frame(predictor_matrix) %>% 
-      filter(fold == j)
-
-    mod <-  get_LASSO_coefficients(glmnet(x=pred, y=train_set$log_saleprice, alpha=1, lambda=vector))
-    # Get predictions
-   
-    
-  }   
-}
- predictions <- predict(mod, newx=predictor_matrix, s=vector[i])
-```
- 
 
 
 
@@ -283,7 +280,6 @@ doesn't run the code, but a user can flip this switch if they are curious.
 
 
 ```
-
 
 
 
