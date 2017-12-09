@@ -121,12 +121,15 @@ model1 <- step(lmempty, scope=list(lower=lmempty, upper=lmfull), direction="forw
 summary(model1)
 test$log_saleprice <- log(test$SalePrice)
 preds <- predict(model1,test)
+
 diffs <- preds - test$log_saleprice
 RMSE <- function(diffs) {
   RMSE <- sqrt(mean((diffs)^2))
   return(RMSE)
 }
 RMSE(diffs)
+
+
 
 ```
 
@@ -219,6 +222,7 @@ inds <- which(c!=0)
 variables <- row.names(c)[inds]
 variables
 ```
+
 
 
 ## Crossvalidation of ultimate model
