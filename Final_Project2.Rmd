@@ -256,6 +256,20 @@ mean(train$SalePrice)
 mean(log(train$SalePrice))
 ```
 
+Our Hypothesis for Important Variables:
+
+```{r}
+#LotArea (Quantitative)
+
+xyplot(log(SalePrice) ~ LotArea, data=train, type = c("p", "r"), xlab = "Lot Area (Sq. Feet)", ylab= "Log of Sale Price", main = "Log of Sale Price vs. Lot Area") #Highly influenced by outliers
+
+#Overall Quality (Categorical)
+
+boxplot(log(SalePrice) ~ OverallQual, data=train, xlab = "Quality Rating (1-10 Scale)", ylab = "Log of Sale Price", main = "Log of Sale Price vs. Overall Quality")
+```
+
+
+
 Predicting Sale Price (in USD) of houses with modeling:
 
 ###1. Subset Selection (Forward or Backwards selection of predictors (Stat230))
