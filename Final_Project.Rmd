@@ -46,8 +46,9 @@ Kaggle Competition: House Prices: Advanced Regression Techniques (Scoring Mechin
 https://www.kaggle.com/c/house-prices-advanced-regression-techniques
 
 ```{r, message=FALSE, warning=FALSE, fig.width=8, fig.height=4.5, echo=FALSE}
+set.seed(1)
 train1 <- read.csv("data/FinalProjectTrain.csv", sep=",", stringsAsFactors = F)
-train_id <- sample(1:dim(train1)[1], dim(train1)[1]/2, replace = FALSE)
+train_id <- sample(1:dim(train1)[1], 3*dim(train1)[1]/4, replace = FALSE)
 train <- train1[train_id, ] #data to fit the model to
 test <- train1[-train_id, ] #data to CV on
 
@@ -107,12 +108,16 @@ train1 <- train1[,names(train1) %in% c(names(factor_levels2), names(column_class
 kaggle_test <- kaggle_test[,names(kaggle_test) %in% c(names(factor_levels3), names(column_class3))]
 
 train <- as.data.frame(unclass(train))
+<<<<<<< HEAD
 test <- as.data.frame(unclass(test))
 train1 <- as.data.frame(unclass(train1))
 kaggle_test <- as.data.frame(unclass(kaggle_test))
 
 #Train model
 lmfull <- lm(log(SalePrice) ~ . , data=train)
+=======
+train <- as.data.frame(unclass(test))
+>>>>>>> 6481f0e1d675da6123a7e3a7cddf8417566c1cee
 ```
 
 ## EDA visualizations and tables
@@ -144,12 +149,22 @@ Predicting Sale Price (in USD) of houses with modeling:
 ```{r}
 train$log_saleprice <- log(train$SalePrice)
 
+<<<<<<< HEAD
 lmfull <- lm(log_saleprice ~ . , data=train)
+=======
+model_formula <- as.formula("log_saleprice ~ Id + MSSubClass + MSZoning + LotFrontage + LotArea + Street + Alley + LotShape + LandContour + LotConfig + LandSlope + Neighborhood + Condition1 + Condition2+ BldgType + HouseStyle + OverallQual + OverallCond + YearBuilt +YearRemodAdd + RoofStyle + RoofMatl + Exterior1st + Exterior2nd + MasVnrType + MasVnrArea + ExterQual + ExterCond + Foundation + BsmtCond + BsmtExposure + BsmtFinType1 + BsmtFinSF1 + BsmtFinType2 + BsmtFinSF2 + BsmtUnfSF + TotalBsmtSF + Heating + HeatingQC + CentralAir + Electrical + X1stFlrSF + X2ndFlrSF + LowQualFinSF + GrLivArea + BsmtFullBath +BsmtHalfBath + FullBath + HalfBath + BedroomAbvGr + KitchenAbvGr + KitchenQual + TotRmsAbvGrd + Functional + Fireplaces + FireplaceQu + GarageType + GarageYrBlt + GarageFinish + GarageCars + GarageArea + GarageQual + PavedDrive + WoodDeckSF + OpenPorchSF + EnclosedPorch + X3SsnPorch + ScreenPorch + PoolArea + PoolQC + Fence + MiscFeature + MiscVal + MoSold + YrSold + SaleType + SaleCondition")
+```
+
+
+```{r}
+lmfull <- lm(model_formula, data=train)
+>>>>>>> 6481f0e1d675da6123a7e3a7cddf8417566c1cee
 
 lmempty <- lm(log_saleprice ~ 1, data=train) # model with only intercept
 model1 <- step(lmempty, scope=list(lower=lmempty, upper=lmfull), direction="forward")
 summary(model1)
 test$log_saleprice <- log(test$SalePrice)
+<<<<<<< HEAD
 
 diff <- test$y - test$log_saleprice
 RMSE <- function(diff) {
@@ -181,6 +196,16 @@ kaggle_test$log_saleprice <- 0
 kaggle_test$SalePrice <- 0
 preds <- predict(model2,kaggle_test)
 
+=======
+preds <- predict(model1,test)
+
+diffs <- preds - test$log_saleprice
+RMSE <- function(diffs) {
+  RMSE <- sqrt(mean((diffs)^2))
+  return(RMSE)
+}
+RMSE(diffs)
+>>>>>>> 6481f0e1d675da6123a7e3a7cddf8417566c1cee
 ```
 
 
@@ -255,6 +280,7 @@ get_LASSO_coefficients <- function(LASSO_fit){
   return(coeff_values)
 }
 
+<<<<<<< HEAD
 mod <- as.formula("log_saleprice ~ SalePrice + Neighborhood + ExterQual + 
     PoolQC + GarageQual + RoofMatl + BsmtQual + OverallQual + 
     Functional + YearRemodAdd + GrLivArea + Exterior1st + CentralAir + 
@@ -267,6 +293,9 @@ mod <- as.formula("log_saleprice ~ SalePrice + Neighborhood + ExterQual +
 
 predictor_matrix <- model.matrix(mod, data=train)[, -1]
 predictor_matrix2 <- model.matrix(mod, data=test)[,-1]
+=======
+predictor_matrix <- model.matrix(model_formula, data=train)[, -1]
+>>>>>>> 6481f0e1d675da6123a7e3a7cddf8417566c1cee
 lambda_inputs <- 10^seq(-2, 10, length = 100)
 predictor_matrix3 <- model.matrix(mod, data=kaggle_test)[,-1]
 
@@ -303,6 +332,22 @@ plot_LASSO_coefficients <- LASSO_coefficients %>%
 plot_LASSO_coefficients
 ```
 
+```{r}
+plot_LASSO_coefficients +
+  coord_cartesian(xlim= c(.01, .6), ylim=c(-.0001, .0001))
+```
+
+```{r}
+LASSO_CV <- cv.glmnet(x=predictor_matrix, y=log(train$SalePrice), alpha=1, lambda=lambda_inputs)
+lambda_star <- LASSO_CV$lambda.min
+lambda_star_1SE <- LASSO_CV$lambda.1se
+
+#code for finding the variables that should be used when lambda=1SE (from stack exchange)
+c <- coef(LASSO_CV, s= lambda_star_1SE, exact=TRUE)
+inds <- which(c!=0)
+variables <- row.names(c)[inds]
+variables
+```
 
 
 
@@ -384,7 +429,6 @@ doesn't run the code, but a user can flip this switch if they are curious.
 
 
 ```
-
 
 
 
