@@ -20,6 +20,7 @@ output:
 ```{r, message=FALSE, warning=FALSE, fig.width=8, fig.height=4.5, echo=FALSE}
 require(mosaic)   # Load additional packages here 
 library(ggplot2)
+library(readr)
 
 # Some customization.  You can alter or delete as desired (if you know what you are doing).
 trellis.par.set(theme=theme.mosaic()) # change default color scheme for lattice
@@ -55,7 +56,7 @@ kaggle_test <- read.csv("data/FinalProjectTest.csv") #predict SalePrice for kagg
 #Drop factor variables with less than 2 levels & keep non-factor vars from Kaggle Competition discusstion(https://www.kaggle.com/c/house-prices-advanced-regression-techniques/discussion/24399)
 
 names(train) <- make.names(names(train))
-
+names(train1) <- make.names(names(train1))
 features <- setdiff(colnames(train), c("Id", "SalePrice"))
 for (f in features) {
   if (any(is.na(train[[f]]))) 
@@ -65,15 +66,32 @@ for (f in features) {
       train[[f]][is.na(train[[f]])] <- -999  
     }
 }
-
+features <- setdiff(colnames(train1), c("Id", "SalePrice"))
+for (f in features) {
+  if (any(is.na(train1[[f]]))) 
+    if (is.character(train1[[f]])){ 
+      train1[[f]][is.na(train1[[f]])] <- "Others"
+    }else{
+      train1[[f]][is.na(train1[[f]])] <- -999  
+    }
+}
 column_class <- lapply(train,class)
 column_class <- column_class[column_class != "factor"]
 factor_levels <- lapply(train, nlevels)
 factor_levels <- factor_levels[factor_levels > 1]
+column_class2 <- lapply(train1,class)
+column_class2 <- column_class[column_class != "factor"]
+factor_levels2 <- lapply(train1, nlevels)
+factor_levels2 <- factor_levels[factor_levels > 1]
 train <- train[,names(train) %in% c(names(factor_levels), names(column_class))]
 test <- train[,names(train) %in% c(names(factor_levels), names(column_class))]
+
+train1 <- train1[,names(train1) %in% c(names(factor_levels2), names(column_class2))]
 train <- as.data.frame(unclass(train))
-train <- as.data.frame(unclass(test))
+test <- as.data.frame(unclass(test))
+train1 <- as.data.frame(unclass(train))
+
+
 #Train model
 lmfull <- lm(log(SalePrice) ~ . , data=train)
 ```
@@ -106,16 +124,29 @@ Predicting Sale Price (in USD) of houses with modeling:
 
 ```{r}
 train$log_saleprice <- log(train$SalePrice)
+
 lmfull <- lm(log_saleprice ~ . , data=train)
 
 lmempty <- lm(log_saleprice ~ 1, data=train) # model with only intercept
 ```
 
 ```{r}
+lmfull2 <- lm(log_saleprice ~ . , data=train1)
+
+lmempty2 <- lm(log_saleprice ~ 1, data=train1)
 model1 <- step(lmempty, scope=list(lower=lmempty, upper=lmfull), direction="forward")
 summary(model1)
+model2 <- lm(formula = log_saleprice ~ SalePrice + GarageFinish + Neighborhood + 
+    BsmtQual + Heating + ExterQual + BedroomAbvGr + YearRemodAdd + 
+    GarageCond + CentralAir + Functional + OverallQual + BldgType + 
+    MSZoning + GrLivArea + ScreenPorch + OverallCond + 
+    YearBuilt + LowQualFinSF + GarageType + Fireplaces + SaleCondition + 
+    MasVnrArea + MasVnrType + LotConfig + Fence + 
+    BsmtFullBath + X2ndFlrSF + PavedDrive + RoofStyle + 
+    SaleType + FullBath + KitchenAbvGr + MSSubClass, data = train1)
+summary(model2)
 test$log_saleprice <- log(test$SalePrice)
-preds <- predict(model1,test)
+preds <- predict(model2,kaggle_test)
 test$y <-preds
 diff <- test$y - test$log_saleprice
 RMSE <- function(diff) {
@@ -135,7 +166,7 @@ RMSE(diff)
 ```{r}
 library(factoextra)
 pca <- train %>% 
-  select(log_saleprice,GrLivArea,GarageArea,LotFrontage, OverallQual,OverallCond,BsmtFinSF1,BsmtFinSF2,TotalBsmtSF,TotRmsAbvGrd,PoolArea,YearBuilt,YearRemodAdd)
+  select(GrLivArea,GarageArea,LotFrontage, OverallQual,OverallCond,BsmtFinSF1,BsmtFinSF2,TotalBsmtSF,TotRmsAbvGrd,PoolArea,YearBuilt,YearRemodAdd)
 pca_comp <- prcomp(pca,scale=FALSE)
 fviz_eig(pca_comp)
 
@@ -150,6 +181,29 @@ fviz_pca_var(pca_comp,
              gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
              repel = TRUE     # Avoid text overlapping
              )
+
+p <- lm(log_saleprice ~ GrLivArea+ GarageArea+LotFrontage+ OverallQual+OverallCond+BsmtFinSF1+BsmtFinSF2+TotalBsmtSF+TotRmsAbvGrd+PoolArea+YearBuilt+YearRemodAdd ,data=train)
+summary(p)
+p2 <-  lm(log_saleprice ~  GarageArea+LotFrontage+TotalBsmtSF+ OverallQual+OverallCond+TotRmsAbvGrd+PoolArea+YearBuilt+YearRemodAdd,data=train)
+y1 <- predict(p,test)
+y2 <- predict(p2,test)
+r1 <- sqrt(mean((y1-test$log_saleprice)^2))
+r2 <- sqrt(mean((y2-test$log_saleprice)^2))
+train1$log_saleprice <- log(train1$SalePrice)
+kaggle_test$log_saleprice <- 0
+kaggle_test$SalePrice <- 0
+p2 <- lm(log_saleprice ~ GrLivArea+ GarageArea+LotFrontage+ OverallQual+OverallCond+BsmtFinSF1+BsmtFinSF2+TotalBsmtSF+TotRmsAbvGrd+PoolArea+YearBuilt+YearRemodAdd ,data=train1)
+
+kag <- predict(p2,kaggle_test)
+kag <- exp(kag)
+mkag <- mean(kag[1])
+kaggle_test$SalePrice <- 0
+kaggle_test$SalePrice <- kag
+kaggle_test$SalePrice <- ifelse(is.na(kaggle_test$SalePrice), mkag, kag)
+
+kag1 <- kaggle_test %>% select(Id, SalePrice)
+
+write_csv(kag1, "submission2.csv")
 ```
 
 ```{r}
@@ -177,11 +231,15 @@ get_LASSO_coefficients <- function(LASSO_fit){
 }
 
 mod <- summary(model1)[1]$call
-model_formula <- as.formula("mod")
-predictor_matrix <- model.matrix(model_formula, data=train)[, -1]
+train1$log_saleprice <- log(train1$SalePrice)
+kaggle_test$log_saleprice <- 0
+kaggle_test$SalePrice <- 0
+model_formula <- model2
+predictor_matrix <- model.matrix(model_formula, data=train1)[, -1]
+predictor_matrix2 <- model.matrix(model_formula, data=kaggle_test)[, -1]
 lambda_inputs <- 10^seq(-2, 10, length = 100)
 
-LASSO_fit <- glmnet(x=predictor_matrix, y=train$log_saleprice, alpha = 1, lambda = lambda_inputs)
+LASSO_fit <- glmnet(x=predictor_matrix, y=train1$log_saleprice, alpha = 1, lambda = lambda_inputs)
 
 # 5. Get beta-hat coefficients for ALL values of knob/tuning parameter lambda
 LASSO_coefficients <- get_LASSO_coefficients(LASSO_fit)
@@ -189,6 +247,24 @@ LASSO_coefficients <- get_LASSO_coefficients(LASSO_fit)
 ggplot(LASSO_coefficients, aes(x=lambda, y=estimate, col=term)) +
   geom_line() +
   labs(x="lambda", y="beta-hat coefficient estimate")
+
+y_hat <- predict(LASSO_fit, newx=predictor_matrix, s=lambda_star_1SE) %>% 
+  as.vector()
+kaggle_test$SalePrice <- exp(y_hat[1:1459])
+hist(y_hat)
+hist(test$log_saleprice, xlab = "y-actual" , main="Historgram of test log(SalesPrice)")
+RMSE <- sqrt(mean((y_hat - test$log_saleprice)^2))
+
+RMSE2 <-  sqrt(mean((y_hat - test$log_saleprice)^2))
+
+
+```
+
+```{r}
+library(readr)
+sub <- kaggle_test %>% select(Id, SalePrice)
+sub <-as.matrix(sub)
+write_csv(sub,"submission.csv")
 ```
 
 ```{r}
@@ -211,29 +287,55 @@ Note: Hardcode your crossvalidation here i.e. do not use built-in crossvalidatio
 options.
 
 ```{r}
-LASSO_CV <- cv.glmnet(x=predictor_matrix, y=train$log_saleprice, alpha=1, lambda=lambda_inputs)
+fold <- 5
+get_LASSO_coefficients <- function(LASSO_fit){
+  coeff_values <- LASSO_fit %>% 
+    broom::tidy() %>% 
+    as_tibble() %>% 
+    select(-c(step, dev.ratio)) %>% 
+    tidyr::complete(lambda, nesting(term), fill = list(estimate = 0)) %>% 
+    arrange(desc(lambda)) %>% 
+    select(term, estimate, lambda)
+  return(coeff_values)
+}
 
-# Optimal lambdas
-lambda_star <- LASSO_CV$lambda.min
-lambda_star_1SE <- LASSO_CV$lambda.1se
-
+mod <- summary(model1)[1]$call
+train1$log_saleprice <- log(train1$SalePrice)
+kaggle_test$log_saleprice <- 0
+kaggle_test$SalePrice <- 0
+model_formula <- as.formula("mod")
+predictor_matrix <- model.matrix(model_formula, data=train1)[, -1]
+predictor_matrix2 <- model.matrix(model_formula, data=kaggle_test)[, -1]
+lambda_inputs <- 10^seq(-2, 10, length = 100)
 ```
 
 ```{r}
-plot(LASSO_CV)
-abline(v=log(lambda_star), col="red")
-abline(v=log(lambda_star_1SE), col="blue")
-
-plot_LASSO_coefficients <- plot_LASSO_coefficients +
-  geom_vline(xintercept = lambda_star, col="red", alpha=0.4, linetype="dashed") +
-  geom_vline(xintercept = lambda_star_1SE, col="blue", alpha=0.4, linetype="dashed")
-plot_LASSO_coefficients
-plot_LASSO_coefficients +
-  coord_cartesian(xlim=c(1, 1000), ylim=c(-1, 1))
-y_hat <- predict(LASSO_fit, newx=predictor_matrix, s=lambda_star_1SE) %>% 
-  as.vector()
-hist(y_hat)
+fold <- 10
+lambda_inputs <- 10^seq(-2, 10, length = 100)
+results <- data_frame(
+  lambda = lambda_inputs,
+  RMSE = 0
+)
+for(i in 1:length(lambda_inputs)){
+  for(j in 1:5){
+    # Set up training & validation (AKA "pretend" test) set based on folds
+    train_set <- train1 %>% 
+      filter(fold == j)
+    predict <- predictor_matrix %>% 
+  
+    validation_set <- train1 %>% 
+      filter(fold !=j)
+    
+  LASSO_fit <- glmnet(x=predict, y=train_set$log_saleprice, alpha = 1, lambda = lambda_inputs[i])
+  
+  results$RMSE[i] <- validation_set %>% 
+      mutate(yhat = predictions) %>% 
+      summarise(RMSE = sqrt(mean((y-yhat)^2))) %>% 
+      pull(RMSE)
+  }
+}
 ```
+
 
 
 
@@ -259,6 +361,7 @@ Note: Anything else you've tried that you'd like to include, but isn't essential
 the above, like other EDA's, other modeling approaches you've tried, etc. Please
 set the R code chunk `eval=FALSE` here so that default is that R Markdown
 doesn't run the code, but a user can flip this switch if they are curious.
+
 
 ```{r, eval=FALSE, message=FALSE, warning=FALSE, fig.width=8, fig.height=4.5, echo=FALSE}
 
