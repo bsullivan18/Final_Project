@@ -3,13 +3,16 @@ title: "Final Project"
 author: "Sara Culhane and Brenna Sullivan"
 date: "December 22, 2017"
 output:
+  pdf_document:
+    toc: yes
+    toc_depth: '2'
   html_document:
-    toc: true
+    df_print: kable
+    toc: yes
     toc_depth: 2
     toc_float:
-      collapsed: false
-      smooth_scroll: false
-    df_print: kable
+      collapsed: no
+      smooth_scroll: no
 ---
 
 
@@ -57,6 +60,7 @@ kaggle_test <- read.csv("data/FinalProjectTest.csv") #predict SalePrice for kagg
 
 names(train) <- make.names(names(train))
 names(train1) <- make.names(names(train1))
+names(kaggle_test) <- make.names(names(kaggle_test))
 features <- setdiff(colnames(train), c("Id", "SalePrice"))
 for (f in features) {
   if (any(is.na(train[[f]]))) 
@@ -75,6 +79,15 @@ for (f in features) {
       train1[[f]][is.na(train1[[f]])] <- -999  
     }
 }
+features <- setdiff(colnames(kaggle_test), c("Id", "SalePrice"))
+for (f in features) {
+  if (any(is.na(kaggle_test[[f]]))) 
+    if (is.character(kaggle_test[[f]])){ 
+      kaggle_test[[f]][is.na(kaggle_test[[f]])] <- "Others"
+    }else{
+      kaggle_test[[f]][is.na(kaggle_test[[f]])] <- -999  
+    }
+}
 column_class <- lapply(train,class)
 column_class <- column_class[column_class != "factor"]
 factor_levels <- lapply(train, nlevels)
@@ -83,14 +96,20 @@ column_class2 <- lapply(train1,class)
 column_class2 <- column_class[column_class != "factor"]
 factor_levels2 <- lapply(train1, nlevels)
 factor_levels2 <- factor_levels[factor_levels > 1]
+column_class3 <- lapply(kaggle_test,class)
+column_class3 <- column_class[column_class != "factor"]
+factor_levels3 <- lapply(kaggle_test, nlevels)
+factor_levels3 <- factor_levels[factor_levels > 1]
 train <- train[,names(train) %in% c(names(factor_levels), names(column_class))]
 test <- train[,names(train) %in% c(names(factor_levels), names(column_class))]
 
 train1 <- train1[,names(train1) %in% c(names(factor_levels2), names(column_class2))]
+kaggle_test <- kaggle_test[,names(kaggle_test) %in% c(names(factor_levels3), names(column_class3))]
+
 train <- as.data.frame(unclass(train))
 test <- as.data.frame(unclass(test))
-train1 <- as.data.frame(unclass(train))
-
+train1 <- as.data.frame(unclass(train1))
+kaggle_test <- as.data.frame(unclass(kaggle_test))
 
 #Train model
 lmfull <- lm(log(SalePrice) ~ . , data=train)
@@ -128,26 +147,10 @@ train$log_saleprice <- log(train$SalePrice)
 lmfull <- lm(log_saleprice ~ . , data=train)
 
 lmempty <- lm(log_saleprice ~ 1, data=train) # model with only intercept
-```
-
-```{r}
-lmfull2 <- lm(log_saleprice ~ . , data=train1)
-
-lmempty2 <- lm(log_saleprice ~ 1, data=train1)
 model1 <- step(lmempty, scope=list(lower=lmempty, upper=lmfull), direction="forward")
 summary(model1)
-model2 <- lm(formula = log_saleprice ~ SalePrice + GarageFinish + Neighborhood + 
-    BsmtQual + Heating + ExterQual + BedroomAbvGr + YearRemodAdd + 
-    GarageCond + CentralAir + Functional + OverallQual + BldgType + 
-    MSZoning + GrLivArea + ScreenPorch + OverallCond + 
-    YearBuilt + LowQualFinSF + GarageType + Fireplaces + SaleCondition + 
-    MasVnrArea + MasVnrType + LotConfig + Fence + 
-    BsmtFullBath + X2ndFlrSF + PavedDrive + RoofStyle + 
-    SaleType + FullBath + KitchenAbvGr + MSSubClass, data = train1)
-summary(model2)
 test$log_saleprice <- log(test$SalePrice)
-preds <- predict(model2,kaggle_test)
-test$y <-preds
+
 diff <- test$y - test$log_saleprice
 RMSE <- function(diff) {
   RMSE <- sqrt(mean(diff^2))
@@ -155,6 +158,28 @@ RMSE <- function(diff) {
 }
 RMSE(diff)
 
+```
+
+```{r}
+train1$log_saleprice <- log(train1$SalePrice)
+lmfull2 <- lm(log_saleprice ~ . , data=train1)
+
+lmempty2 <- lm(log_saleprice ~ 1, data=train1)
+
+model2 <- lm(formula = log_saleprice ~ SalePrice + GarageFinish + Neighborhood + 
+    BsmtQual + Heating + ExterQual + BedroomAbvGr + YearRemodAdd + 
+    GarageCond + CentralAir + Functional + OverallQual + BldgType + 
+    MSZoning + GrLivArea + ScreenPorch + OverallCond + YearBuilt + 
+    LowQualFinSF + GarageType + Fireplaces + SaleCondition + 
+    MasVnrArea + MasVnrType + LotConfig + Fence + BsmtFullBath + 
+    X2ndFlrSF + PavedDrive + RoofStyle + SaleType + FullBath + 
+    KitchenAbvGr + MSSubClass, data = train1)
+preds <- predict(model2,kaggle_test)
+test$y <-preds
+
+kaggle_test$log_saleprice <- 0
+kaggle_test$SalePrice <- 0
+preds <- predict(model2,kaggle_test)
 
 ```
 
@@ -189,7 +214,7 @@ y1 <- predict(p,test)
 y2 <- predict(p2,test)
 r1 <- sqrt(mean((y1-test$log_saleprice)^2))
 r2 <- sqrt(mean((y2-test$log_saleprice)^2))
-train1$log_saleprice <- log(train1$SalePrice)
+
 kaggle_test$log_saleprice <- 0
 kaggle_test$SalePrice <- 0
 p2 <- lm(log_saleprice ~ GrLivArea+ GarageArea+LotFrontage+ OverallQual+OverallCond+BsmtFinSF1+BsmtFinSF2+TotalBsmtSF+TotRmsAbvGrd+PoolArea+YearBuilt+YearRemodAdd ,data=train1)
@@ -230,17 +255,24 @@ get_LASSO_coefficients <- function(LASSO_fit){
   return(coeff_values)
 }
 
-mod <- summary(model1)[1]$call
-train1$log_saleprice <- log(train1$SalePrice)
-kaggle_test$log_saleprice <- 0
-kaggle_test$SalePrice <- 0
-model_formula <- model2
-predictor_matrix <- model.matrix(model_formula, data=train1)[, -1]
-predictor_matrix2 <- model.matrix(model_formula, data=kaggle_test)[, -1]
+mod <- as.formula("log_saleprice ~ SalePrice + Neighborhood + ExterQual + 
+    PoolQC + GarageQual + RoofMatl + BsmtQual + OverallQual + 
+    Functional + YearRemodAdd + GrLivArea + Exterior1st + CentralAir + 
+    GarageType + BsmtFullBath + YearBuilt + OverallCond + FireplaceQu + 
+    GarageCars + MSZoning + HouseStyle + BedroomAbvGr + ScreenPorch + 
+    Fence + Id + WoodDeckSF + SaleCondition + Alley + ExterCond + 
+    Condition2 + GarageFinish + PavedDrive + Heating + MSSubClass + 
+    OpenPorchSF + RoofStyle + MoSold + BsmtFinType1 + BsmtCond + 
+    Foundation + BsmtHalfBath + MiscVal + LotFrontage")
+
+predictor_matrix <- model.matrix(mod, data=train)[, -1]
+predictor_matrix2 <- model.matrix(mod, data=test)[,-1]
 lambda_inputs <- 10^seq(-2, 10, length = 100)
+predictor_matrix3 <- model.matrix(mod, data=kaggle_test)[,-1]
 
-LASSO_fit <- glmnet(x=predictor_matrix, y=train1$log_saleprice, alpha = 1, lambda = lambda_inputs)
-
+LASSO_fit <- glmnet(x=predictor_matrix, y=train$log_saleprice, alpha = 1, lambda = lambda_inputs)
+LASSO_CV <- cv.glmnet(x=predictor_matrix, y=train$log_saleprice, alpha = 1)
+lambda_star_1SE <- LASSO_CV$lambda.1se
 # 5. Get beta-hat coefficients for ALL values of knob/tuning parameter lambda
 LASSO_coefficients <- get_LASSO_coefficients(LASSO_fit)
 
@@ -248,24 +280,17 @@ ggplot(LASSO_coefficients, aes(x=lambda, y=estimate, col=term)) +
   geom_line() +
   labs(x="lambda", y="beta-hat coefficient estimate")
 
-y_hat <- predict(LASSO_fit, newx=predictor_matrix, s=lambda_star_1SE) %>% 
+### Predict for test coeff
+y_hat <- predict(LASSO_fit, newx=predictor_matrix2, s=lambda_star_1SE) %>% 
   as.vector()
-kaggle_test$SalePrice <- exp(y_hat[1:1459])
-hist(y_hat)
-hist(test$log_saleprice, xlab = "y-actual" , main="Historgram of test log(SalesPrice)")
+hist(exp(y_hat))
+hist(test$SalePrice, xlab = "y-actual" , main="Historgram of test SalePrice")
 RMSE <- sqrt(mean((y_hat - test$log_saleprice)^2))
 
-RMSE2 <-  sqrt(mean((y_hat - test$log_saleprice)^2))
 
 
 ```
 
-```{r}
-library(readr)
-sub <- kaggle_test %>% select(Id, SalePrice)
-sub <-as.matrix(sub)
-write_csv(sub,"submission.csv")
-```
 
 ```{r}
 plot_LASSO_coefficients <- LASSO_coefficients %>% 
@@ -287,53 +312,45 @@ Note: Hardcode your crossvalidation here i.e. do not use built-in crossvalidatio
 options.
 
 ```{r}
-fold <- 5
-get_LASSO_coefficients <- function(LASSO_fit){
-  coeff_values <- LASSO_fit %>% 
-    broom::tidy() %>% 
-    as_tibble() %>% 
-    select(-c(step, dev.ratio)) %>% 
-    tidyr::complete(lambda, nesting(term), fill = list(estimate = 0)) %>% 
-    arrange(desc(lambda)) %>% 
-    select(term, estimate, lambda)
-  return(coeff_values)
-}
-
-mod <- summary(model1)[1]$call
 train1$log_saleprice <- log(train1$SalePrice)
-kaggle_test$log_saleprice <- 0
+kaggle_test$log_saleprice <- runif(nrow(kaggle_test),1,10)
 kaggle_test$SalePrice <- 0
-model_formula <- as.formula("mod")
-predictor_matrix <- model.matrix(model_formula, data=train1)[, -1]
-predictor_matrix2 <- model.matrix(model_formula, data=kaggle_test)[, -1]
-lambda_inputs <- 10^seq(-2, 10, length = 100)
 ```
 
+
 ```{r}
-fold <- 10
+train$log_saleprice <- log(train$SalePrice)
+fold <- 1:10
 lambda_inputs <- 10^seq(-2, 10, length = 100)
 results <- data_frame(
   lambda = lambda_inputs,
   RMSE = 0
 )
+train <- train %>% 
+  sample_frac(1) %>% 
+  mutate(fold = rep(1:10, length=n()))
+  train %>% count(fold)
+
 for(i in 1:length(lambda_inputs)){
-  for(j in 1:5){
+  for(j in 1:10){
     # Set up training & validation (AKA "pretend" test) set based on folds
-    train_set <- train1 %>% 
+    train_set <- train %>% 
       filter(fold == j)
-    predict <- predictor_matrix %>% 
+     
   
-    validation_set <- train1 %>% 
+    validation_set <- train %>% 
       filter(fold !=j)
+      predict <- model.matrix(mod,data=train_set)
     
-  LASSO_fit <- glmnet(x=predict, y=train_set$log_saleprice, alpha = 1, lambda = lambda_inputs[i])
-  
-  results$RMSE[i] <- validation_set %>% 
-      mutate(yhat = predictions) %>% 
+    LASSO_fit <- glmnet(x=predict, y=train_set$log_saleprice, alpha = 1, lambda = lambda_inputs[i])
+    preds <- predict(LASSO_fit, newx=predict)
+      results$RMSE[i] <- validation_set %>% 
+      mutate(yhat = preds) %>% 
       summarise(RMSE = sqrt(mean((y-yhat)^2))) %>% 
       pull(RMSE)
   }
 }
+    
 ```
 
 
