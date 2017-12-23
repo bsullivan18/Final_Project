@@ -3,9 +3,6 @@ title: "Final Project"
 author: "Sara Culhane and Brenna Sullivan"
 date: "December 22, 2017"
 output:
-  pdf_document:
-    toc: yes
-    toc_depth: '2'
   html_document:
     df_print: kable
     toc: yes
@@ -13,6 +10,9 @@ output:
     toc_float:
       collapsed: no
       smooth_scroll: no
+  pdf_document:
+    toc: yes
+    toc_depth: '2'
 ---
 
 
@@ -46,13 +46,131 @@ Kaggle Competition: House Prices: Advanced Regression Techniques (Scoring Mechin
 https://www.kaggle.com/c/house-prices-advanced-regression-techniques
 
 ```{r, message=FALSE, warning=FALSE, fig.width=8, fig.height=4.5, echo=FALSE}
-set.seed(1)
 train1 <- read.csv("data/FinalProjectTrain.csv", sep=",", stringsAsFactors = F)
-train_id <- sample(1:dim(train1)[1], 3*dim(train1)[1]/4, replace = FALSE)
+kaggle_test <- read.csv("data/FinalProjectTest.csv") #predict SalePrice for kaggle submission
+```
+
+```{r, message=FALSE, warning=FALSE}
+#data cleaning
+
+#RoofStyle
+train1$RoofStyle[train1$RoofStyle == "Flat"] <- "Other"
+train1$RoofStyle[train1$RoofStyle == "Gambrel"] <- "Other"
+train1$RoofStyle[train1$RoofStyle == "Mansard"] <- "Other"
+train1$RoofStyle[train1$RoofStyle == "Shed"] <- "Other"
+
+#Exterior1st
+train1$Exterior1st[train1$Exterior1st == "AsphShn"] <- "Other"
+train1$Exterior1st[train1$Exterior1st == "BrkComm"] <- "Other"
+train1$Exterior1st[train1$Exterior1st == "Stone"] <- "Other"
+
+#heating
+train1$Heating[train1$Heating == "Floor"] <- "Other"
+train1$Heating[train1$Heating == "Grav"] <- "Other"
+train1$Heating[train1$Heating == "OthW"] <- "Other"
+train1$Heating[train1$Heating == "Wall"] <- "Other"
+
+#Condition1
+train1$Condition1[train1$Condition1 == "RRNn"] <- "Other"
+train1$Condition1[train1$Condition1 == "RRNe"] <- "Other"
+train1$Condition1[train1$Condition1 == "RRAe"] <- "Other"
+train1$Condition1[train1$Condition1 == "Pos8"] <- "Other"
+
+#Condition2
+train1$Condition2[train1$Condition2 == "Artery"] <- "Other"
+train1$Condition2[train1$Condition2 == "Feedr"] <- "Other"
+train1$Condition2[train1$Condition2 == "PosA"] <- "Other"
+train1$Condition2[train1$Condition2 == "PosN"] <- "Other"
+train1$Condition2[train1$Condition2 == "RRAe"] <- "Other"
+train1$Condition2[train1$Condition2 == "RRAn"] <- "Other"
+train1$Condition2[train1$Condition2 == "RRNn"] <- "Other"
+
+#Functional
+train1$Functional[train1$Functional == "Sev"] <- "Other"
+train1$Functional[train1$Functional == "Maj2"] <- "Other"
+
+#ExternalCond
+train1$ExterCond[train1$ExterCond == "Fa"] <- "Bad"
+train1$ExterCond[train1$ExterCond == "Po"] <- "Bad"
+train1$ExterCond[train1$ExterCond == "Ex"] <- "Good"
+train1$ExterCond[train1$ExterCond == "Gd"] <- "Good"
+
+#HeatingQC
+train1$HeatingQC[train1$HeatingQC == "Po"] <- "Fa"
+
+#SaleType
+train1$SaleType[train1$SaleType == "COD"] <- "Other"
+train1$SaleType[train1$SaleType == "Con"] <- "Other"
+train1$SaleType[train1$SaleType == "ConLD"] <- "Other"
+train1$SaleType[train1$SaleType == "ConLI"] <- "Other"
+train1$SaleType[train1$SaleType == "ConLw"] <- "Other"
+train1$SaleType[train1$SaleType == "CWD"] <- "Other"
+train1$SaleType[train1$SaleType == "Oth"] <- "Other"
+
+#RoofStyle
+kaggle_test$RoofStyle[kaggle_test$RoofStyle == "Flat"] <- "Other"
+kaggle_test$RoofStyle[kaggle_test$RoofStyle == "Gambrel"] <- "Other"
+kaggle_test$RoofStyle[kaggle_test$RoofStyle == "Mansard"] <- "Other"
+kaggle_test$RoofStyle[kaggle_test$RoofStyle == "Shed"] <- "Other"
+
+#Exterior1st
+kaggle_test$Exterior1st[kaggle_test$Exterior1st == "AsphShn"] <- "Other"
+kaggle_test$Exterior1st[kaggle_test$Exterior1st == "BrkComm"] <- "Other"
+kaggle_test$Exterior1st[kaggle_test$Exterior1st == "CBlock"] <- "Other"
+kaggle_test$Exterior1st[kaggle_test$Exterior1st == "Stone"] <- "Other"
+kaggle_test$Exterior1st[kaggle_test$Exterior1st == "<NA>"] <- "Other"
+
+#heating
+kaggle_test$Heating[kaggle_test$Heating == "Floor"] <- "Other"
+kaggle_test$Heating[kaggle_test$Heating == "Grav"] <- "Other"
+kaggle_test$Heating[kaggle_test$Heating == "OthW"] <- "Other"
+kaggle_test$Heating[kaggle_test$Heating == "Wall"] <- "Other"
+
+#Condition1
+kaggle_test$Condition1[kaggle_test$Condition1 == "RRNn"] <- "Other"
+kaggle_test$Condition1[kaggle_test$Condition1 == "RRNe"] <- "Other"
+kaggle_test$Condition1[kaggle_test$Condition1 == "RRAe"] <- "Other"
+kaggle_test$Condition1[kaggle_test$Condition1 == "Pos8"] <- "Other"
+
+#Condition2
+kaggle_test$Condition2[kaggle_test$Condition2 == "Artery"] <- "Other"
+kaggle_test$Condition2[kaggle_test$Condition2 == "Feedr"] <- "Other"
+kaggle_test$Condition2[kaggle_test$Condition2 == "PosA"] <- "Other"
+kaggle_test$Condition2[kaggle_test$Condition2 == "PosN"] <- "Other"
+kaggle_test$Condition2[kaggle_test$Condition2 == "RRAe"] <- "Other"
+kaggle_test$Condition2[kaggle_test$Condition2 == "RRAn"] <- "Other"
+kaggle_test$Condition2[kaggle_test$Condition2 == "RRNn"] <- "Other"
+
+#Functional
+kaggle_test$Functional[kaggle_test$Functional == "Sev"] <- "Other"
+kaggle_test$Functional[kaggle_test$Functional == "Maj2"] <- "Other"
+
+#ExternalCond
+kaggle_test$ExterCond[kaggle_test$ExterCond == "Fa"] <- "Bad"
+kaggle_test$ExterCond[kaggle_test$ExterCond == "Po"] <- "Bad"
+kaggle_test$ExterCond[kaggle_test$ExterCond == "Ex"] <- "Good"
+kaggle_test$ExterCond[kaggle_test$ExterCond == "Gd"] <- "Good"
+
+#HeatingQC
+kaggle_test$HeatingQC[kaggle_test$HeatingQC == "Po"] <- "Fa"
+
+#SaleType
+kaggle_test$SaleType[kaggle_test$SaleType == "COD"] <- "Other"
+kaggle_test$SaleType[kaggle_test$SaleType == "Con"] <- "Other"
+kaggle_test$SaleType[kaggle_test$SaleType == "ConLD"] <- "Other"
+kaggle_test$SaleType[kaggle_test$SaleType == "ConLI"] <- "Other"
+kaggle_test$SaleType[kaggle_test$SaleType == "ConLw"] <- "Other"
+kaggle_test$SaleType[kaggle_test$SaleType == "CWD"] <- "Other"
+kaggle_test$SaleType[kaggle_test$SaleType == "Oth"] <- "Other"
+
+```
+
+```{r}
+#psuedo train and test set
+set.seed(1)
+train_id <- sample(1:dim(train1)[1], dim(train1)[1]/2, replace = FALSE)
 train <- train1[train_id, ] #data to fit the model to
 test <- train1[-train_id, ] #data to CV on
-
-kaggle_test <- read.csv("data/FinalProjectTest.csv") #predict SalePrice for kaggle submission
 ```
 
 
@@ -108,16 +226,12 @@ train1 <- train1[,names(train1) %in% c(names(factor_levels2), names(column_class
 kaggle_test <- kaggle_test[,names(kaggle_test) %in% c(names(factor_levels3), names(column_class3))]
 
 train <- as.data.frame(unclass(train))
-<<<<<<< HEAD
 test <- as.data.frame(unclass(test))
 train1 <- as.data.frame(unclass(train1))
 kaggle_test <- as.data.frame(unclass(kaggle_test))
 
 #Train model
 lmfull <- lm(log(SalePrice) ~ . , data=train)
-=======
-train <- as.data.frame(unclass(test))
->>>>>>> 6481f0e1d675da6123a7e3a7cddf8417566c1cee
 ```
 
 ## EDA visualizations and tables
@@ -134,39 +248,57 @@ score returned by Kaggle after your submission.
 Predicting Sale Price (in USD) of houses with no modeling:
 
 ```{r}
-histogram(train$SalePrice, type = "percent", xlab= "Sale Price (USD)", ylab= "Percent of Homes") #skewed right, not normal
-bwplot(train$SalePrice, xlab= "Sale Price (USD)")
-histogram(log(train$SalePrice), type = "percent", xlab = "Log of Sale Price (USD)", ylab = "Percent of Homes") #much more normal when logSalePrice is used
-bwplot(log(train$SalePrice), xlab = "Log of Sale Price (USD)")
+histogram(train$SalePrice, type = "percent", xlab= "Sale Price (USD)", ylab= "Percent of Homes", main = "Sale Price of Homes in Ames, Iowa") #skewed right, not normal
+bwplot(train$SalePrice, xlab= "Sale Price (USD)", main = "Log of Sale Price of Homes in Ames, Iowa")
+histogram(log(train$SalePrice), type = "percent", xlab = "Log of Sale Price (USD)", ylab = "Percent of Homes", main = "Sale Price of Homes in Ames, Iowa") #much more normal when logSalePrice is used
+bwplot(log(train$SalePrice), xlab = "Log of Sale Price (USD)", main = "Log of Sale Price of Homes in Ames, Iowa")
 mean(train$SalePrice)
 mean(log(train$SalePrice))
 ```
+
+Our Hypothesis for Important Variables:
+
+```{r}
+#LotArea (Quantitative)
+
+xyplot(log(SalePrice) ~ LotArea, data=train, type = c("p", "r"), xlab = "Lot Area (Sq. Feet)", ylab= "Log of Sale Price", main = "Log of Sale Price vs. Lot Area") #Highly influenced by outliers
+
+#Overall Quality (Categorical)
+
+boxplot(log(SalePrice) ~ OverallQual, data=train, xlab = "Quality Rating (1-10 Scale)", ylab = "Log of Sale Price", main = "Log of Sale Price vs. Overall Quality")
+```
+
+
 
 Predicting Sale Price (in USD) of houses with modeling:
 
 ###1. Subset Selection (Forward or Backwards selection of predictors (Stat230))
 
+
+
 ```{r}
 train$log_saleprice <- log(train$SalePrice)
+```
 
-<<<<<<< HEAD
-lmfull <- lm(log_saleprice ~ . , data=train)
-=======
+```{r}
 model_formula <- as.formula("log_saleprice ~ Id + MSSubClass + MSZoning + LotFrontage + LotArea + Street + Alley + LotShape + LandContour + LotConfig + LandSlope + Neighborhood + Condition1 + Condition2+ BldgType + HouseStyle + OverallQual + OverallCond + YearBuilt +YearRemodAdd + RoofStyle + RoofMatl + Exterior1st + Exterior2nd + MasVnrType + MasVnrArea + ExterQual + ExterCond + Foundation + BsmtCond + BsmtExposure + BsmtFinType1 + BsmtFinSF1 + BsmtFinType2 + BsmtFinSF2 + BsmtUnfSF + TotalBsmtSF + Heating + HeatingQC + CentralAir + Electrical + X1stFlrSF + X2ndFlrSF + LowQualFinSF + GrLivArea + BsmtFullBath +BsmtHalfBath + FullBath + HalfBath + BedroomAbvGr + KitchenAbvGr + KitchenQual + TotRmsAbvGrd + Functional + Fireplaces + FireplaceQu + GarageType + GarageYrBlt + GarageFinish + GarageCars + GarageArea + GarageQual + PavedDrive + WoodDeckSF + OpenPorchSF + EnclosedPorch + X3SsnPorch + ScreenPorch + PoolArea + PoolQC + Fence + MiscFeature + MiscVal + MoSold + YrSold + SaleType + SaleCondition")
 ```
 
-
-```{r}
+```{r, include=FALSE}
 lmfull <- lm(model_formula, data=train)
->>>>>>> 6481f0e1d675da6123a7e3a7cddf8417566c1cee
 
 lmempty <- lm(log_saleprice ~ 1, data=train) # model with only intercept
 model1 <- step(lmempty, scope=list(lower=lmempty, upper=lmfull), direction="forward")
 summary(model1)
-test$log_saleprice <- log(test$SalePrice)
-<<<<<<< HEAD
+```
 
-diff <- test$y - test$log_saleprice
+```{r}
+test$log_saleprice <- log(test$SalePrice)
+
+test_preds <- predict(model1, test)
+
+diff <- test_preds - test$log_saleprice
+
 RMSE <- function(diff) {
   RMSE <- sqrt(mean(diff^2))
   return(RMSE)
@@ -175,37 +307,29 @@ RMSE(diff)
 
 ```
 
+
 ```{r}
 train1$log_saleprice <- log(train1$SalePrice)
 lmfull2 <- lm(log_saleprice ~ . , data=train1)
 
 lmempty2 <- lm(log_saleprice ~ 1, data=train1)
 
-model2 <- lm(formula = log_saleprice ~ SalePrice + GarageFinish + Neighborhood + 
-    BsmtQual + Heating + ExterQual + BedroomAbvGr + YearRemodAdd + 
-    GarageCond + CentralAir + Functional + OverallQual + BldgType + 
-    MSZoning + GrLivArea + ScreenPorch + OverallCond + YearBuilt + 
-    LowQualFinSF + GarageType + Fireplaces + SaleCondition + 
-    MasVnrArea + MasVnrType + LotConfig + Fence + BsmtFullBath + 
-    X2ndFlrSF + PavedDrive + RoofStyle + SaleType + FullBath + 
-    KitchenAbvGr + MSSubClass, data = train1)
+model2 <- lm(formula = log_saleprice ~ OverallQual + Neighborhood + GrLivArea + 
+    BsmtFinSF1 + YearRemodAdd + TotalBsmtSF + GarageQual + OverallCond + 
+    CentralAir + SaleCondition + GarageCars + LotArea + YearBuilt + 
+    BldgType + MSZoning + Functional + BsmtFullBath + KitchenQual + 
+    Condition1 + WoodDeckSF + FireplaceQu + BsmtFinSF2 + ScreenPorch + 
+    FullBath + LotConfig + Heating + HeatingQC + BsmtExposure + 
+    X3SsnPorch + ExterCond + Street + SaleType + EnclosedPorch + 
+    HalfBath, data = train)
+
 preds <- predict(model2,kaggle_test)
-test$y <-preds
+
 
 kaggle_test$log_saleprice <- 0
 kaggle_test$SalePrice <- 0
-preds <- predict(model2,kaggle_test)
+kaggle_preds <- predict(model2,kaggle_test)
 
-=======
-preds <- predict(model1,test)
-
-diffs <- preds - test$log_saleprice
-RMSE <- function(diffs) {
-  RMSE <- sqrt(mean((diffs)^2))
-  return(RMSE)
-}
-RMSE(diffs)
->>>>>>> 6481f0e1d675da6123a7e3a7cddf8417566c1cee
 ```
 
 
@@ -280,7 +404,6 @@ get_LASSO_coefficients <- function(LASSO_fit){
   return(coeff_values)
 }
 
-<<<<<<< HEAD
 mod <- as.formula("log_saleprice ~ SalePrice + Neighborhood + ExterQual + 
     PoolQC + GarageQual + RoofMatl + BsmtQual + OverallQual + 
     Functional + YearRemodAdd + GrLivArea + Exterior1st + CentralAir + 
@@ -293,9 +416,6 @@ mod <- as.formula("log_saleprice ~ SalePrice + Neighborhood + ExterQual +
 
 predictor_matrix <- model.matrix(mod, data=train)[, -1]
 predictor_matrix2 <- model.matrix(mod, data=test)[,-1]
-=======
-predictor_matrix <- model.matrix(model_formula, data=train)[, -1]
->>>>>>> 6481f0e1d675da6123a7e3a7cddf8417566c1cee
 lambda_inputs <- 10^seq(-2, 10, length = 100)
 predictor_matrix3 <- model.matrix(mod, data=kaggle_test)[,-1]
 
@@ -332,22 +452,6 @@ plot_LASSO_coefficients <- LASSO_coefficients %>%
 plot_LASSO_coefficients
 ```
 
-```{r}
-plot_LASSO_coefficients +
-  coord_cartesian(xlim= c(.01, .6), ylim=c(-.0001, .0001))
-```
-
-```{r}
-LASSO_CV <- cv.glmnet(x=predictor_matrix, y=log(train$SalePrice), alpha=1, lambda=lambda_inputs)
-lambda_star <- LASSO_CV$lambda.min
-lambda_star_1SE <- LASSO_CV$lambda.1se
-
-#code for finding the variables that should be used when lambda=1SE (from stack exchange)
-c <- coef(LASSO_CV, s= lambda_star_1SE, exact=TRUE)
-inds <- which(c!=0)
-variables <- row.names(c)[inds]
-variables
-```
 
 
 
@@ -355,53 +459,6 @@ variables
 
 Note: Hardcode your crossvalidation here i.e. do not use built-in crossvalidation
 options.
-
-```{r}
-train1$log_saleprice <- log(train1$SalePrice)
-kaggle_test$log_saleprice <- runif(nrow(kaggle_test),1,10)
-kaggle_test$SalePrice <- 0
-```
-
-
-```{r}
-train$log_saleprice <- log(train$SalePrice)
-fold <- 1:10
-lambda_inputs <- 10^seq(-2, 10, length = 100)
-results <- data_frame(
-  lambda = lambda_inputs,
-  RMSE = 0
-)
-train <- train %>% 
-  sample_frac(1) %>% 
-  mutate(fold = rep(1:10, length=n()))
-  train %>% count(fold)
-
-for(i in 1:length(lambda_inputs)){
-  for(j in 1:10){
-    # Set up training & validation (AKA "pretend" test) set based on folds
-    train_set <- train %>% 
-      filter(fold == j)
-     
-  
-    validation_set <- train %>% 
-      filter(fold !=j)
-      predict <- model.matrix(mod,data=train_set)
-    
-    LASSO_fit <- glmnet(x=predict, y=train_set$log_saleprice, alpha = 1, lambda = lambda_inputs[i])
-    preds <- predict(LASSO_fit, newx=predict)
-      results$RMSE[i] <- validation_set %>% 
-      mutate(yhat = preds) %>% 
-      summarise(RMSE = sqrt(mean((y-yhat)^2))) %>% 
-      pull(RMSE)
-  }
-}
-    
-```
-
-
-
-
-
 
 ## Create submission
 
@@ -415,7 +472,8 @@ close to your crossvalidated score.
 
 Note: All citations and references must be included here.
 
-
+Dropping facors with less than 2 levels from Kaggle competition discussion section
+(https://www.kaggle.com/c/house-prices-advanced-regression-techniques/discussion/24399)
 
 ## Supplementary materials
 
@@ -426,9 +484,35 @@ doesn't run the code, but a user can flip this switch if they are curious.
 
 
 ```{r, eval=FALSE, message=FALSE, warning=FALSE, fig.width=8, fig.height=4.5, echo=FALSE}
+train1$log_saleprice <- log(train1$SalePrice)
+kaggle_test$log_saleprice <- runif(nrow(kaggle_test),1,10)
+kaggle_test$SalePrice <- 0
 
-
+fold <- 10
+lambda_inputs <- 10^seq(-2, 10, length = 100)
+results <- data_frame(
+  lambda = lambda_inputs,
+  RMSE = 0
+)
+for(i in 1:length(lambda_inputs)){
+  for(j in 1:10){
+    # Set up training & validation (AKA "pretend" test) set based on folds
+    train_set <- train %>% 
+      filter(fold == j)
+     
+  
+    validation_set <- train %>% 
+      filter(fold !=j)
+    
+    predict <- model.matrix(mod, data=train_set)[, -1]
+    
+    LASSO_fit <- glmnet(x=predict, y=train_set$log_saleprice, alpha = 1, lambda = lambda_inputs)[1]
+    
+  }
+}
+    
 ```
+
 
 
 
